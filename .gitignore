@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+*.h5
+deflamel_images
+tmp
+.idea
+.DS_Store
 # C extensions
 *.so
 
