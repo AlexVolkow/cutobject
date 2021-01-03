@@ -8,12 +8,17 @@ from skimage.measure import find_contours
 
 
 def generate_trimap(segment_mask, trimap_name):
-    k_size = 7
-    iterations = 5
+    iterations = 8
     alpha = segment_mask
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k_size, k_size))
-    dilated = cv2.dilate(alpha, kernel, iterations=iterations)
-    eroded = cv2.erode(alpha, kernel, iterations=iterations)
+
+    k_dilated_size = 3
+    kernel_dilated = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k_dilated_size, k_dilated_size))
+    dilated = cv2.dilate(alpha, kernel_dilated, iterations=iterations)
+
+    k_erode_size = 5
+    kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k_erode_size, k_erode_size))
+    eroded = cv2.erode(alpha, kernel_erode, iterations=iterations)
+
     trimap = np.zeros(alpha.shape, dtype=np.uint8)
     trimap.fill(128)
 
@@ -21,6 +26,7 @@ def generate_trimap(segment_mask, trimap_name):
     trimap[dilated <= 0] = 0
 
     cv2.imwrite(trimap_name, trimap)
+
 
 def expand_mask(mask, pixels):
     padded_mask = np.zeros(

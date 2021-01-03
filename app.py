@@ -5,17 +5,18 @@ from flask import Flask, flash, request, redirect, send_file
 from tensorflow.python.keras.backend import set_session
 from werkzeug.utils import secure_filename
 
-from matting import PyMatting
+from cutobject import CutObject
 from segmentation import Segmentation
+
+UPLOAD_FOLDER = 'tmp'
 
 sess = tf.Session()
 graph = tf.get_default_graph()
 
 set_session(sess)
 segmentation = Segmentation()
-matting = PyMatting(segmentation)
+cutter = CutObject(segmentation, UPLOAD_FOLDER)
 
-UPLOAD_FOLDER = 'tmp'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask(__name__)
@@ -51,7 +52,7 @@ def upload_file():
             global graph
             with graph.as_default():
                 set_session(sess)
-                output_path = matting.matting(image_path, UPLOAD_FOLDER)
+                output_path = cutter.cut(image_path)
 
             return send_file(output_path)
     return '''
