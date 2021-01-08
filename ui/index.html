@@ -1,0 +1,136 @@
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+
+
+    <title>CutObject</title>
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropper/2.3.3/cropper.css">
+
+    <style>
+        /* Limit image width to avoid overflow the container */
+        img {
+            max-width: 100%; /* This rule is very important, please do not ignore this! */
+        }
+
+        #canvas {
+            height: 600px;
+            width: 600px;
+            background-color: #ffffff;
+            cursor: default;
+            border: 1px solid black;
+        }
+    </style>
+
+    <script>
+        window.console = window.console || function (t) {
+        };
+    </script>
+
+
+    <script>
+        if (document.location.search.match(/type=embed/gi)) {
+            window.parent.postMessage("resize", "*");
+        }
+    </script>
+
+
+</head>
+
+<body translate="no">
+<p>
+    <!-- Below are a series of inputs which allow file selection and interaction with the cropper api -->
+    <input type="file" id="fileInput" accept="image/*">
+    <input type="button" id="btnCrop" value="Crop">
+    <input type="button" id="btnRestore" value="Restore">
+</p>
+<div>
+    <canvas id="canvas">
+        Your browser does not support the HTML5 canvas element.
+    </canvas>
+</div>
+
+<div id="result"></div>
+
+<br>
+<br>
+<hr>
+
+<script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-157cd5b220a5c80d4ff8e0e70ac069bffd87a61252088146915e8726e5d9f147.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropper/2.3.3/cropper.js"></script>
+<script id="rendered-js">
+    window.URL = window.URL || window.webkitURL;
+
+    const canvas = $("#canvas"),
+        context = canvas.get(0).getContext("2d"),
+        $result = $('#result');
+
+    $('#fileInput').on('change', function () {
+        let files = this.files;
+        if (files && files[0]) {
+            if (files[0].type.match(/^image\//)) {
+                const reader = new FileReader();
+                reader.onload = function (evt) {
+                    const img = new Image();
+                    img.onload = function () {
+                        context.canvas.height = img.height;
+                        context.canvas.width = img.width;
+                        context.drawImage(img, 0, 0);
+                        const cropper = canvas.cropper({
+                            aspectRatio: 16 / 9
+                        });
+
+                        $('#btnCrop').click(function () {
+                            const request = new XMLHttpRequest();
+                            request.responseType = 'blob';
+
+                            request.onload = function (e) {
+                                if (this.status === 200) {
+                                    const blob = this.response;
+
+                                    const img = document.createElement('img');
+                                    img.onload = function (e) {
+                                        window.URL.revokeObjectURL(img.src); // Clean up after yourself.
+                                    };
+                                    img.src = window.URL.createObjectURL(blob);
+                                    $result.append(img);
+                                }
+                            };
+
+                            const crop = canvas.cropper('getData');
+                            const cropJson = JSON.stringify(crop);
+                            const blob = new Blob([cropJson], {
+                                type: 'application/json'
+                            });
+
+                            const formData = new FormData();
+                            formData.append("file", files[0]);
+                            formData.append("crop", blob);
+
+                            request.open("POST", "/", true);
+                            request.send(formData);
+                        });
+                        $('#btnRestore').click(function () {
+                            canvas.cropper('reset');
+                            $result.empty();
+                        });
+                    };
+                    img.src = evt.target.result;
+                };
+                reader.readAsDataURL(files[0]);
+            } else {
+                alert("Invalid file type! Please select an image file.");
+            }
+        } else {
+            alert('No file(s) selected.');
+        }
+    });
+</script>
+
+
+</body>
+</html>

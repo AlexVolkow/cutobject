@@ -28,11 +28,18 @@ class Segmentation:
 
     def predict(self, image_path, crop=None):
         image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+        shape = image.shape
 
         cropped = not (crop is None)
 
         if cropped:
             x1, y1, x2, y2 = crop
+
+            x1 = max(0, x1)
+            y1 = max(0, y1)
+            x2 = min(shape[0] - 1, x2)
+            y2 = min(shape[1] - 1, y2)
+
             image = image[x1:x2, y1:y2]
 
         results = self.model.detect([image], verbose=0)
@@ -40,7 +47,7 @@ class Segmentation:
         r = results[0]
 
         if cropped:
-            masks = np.zeros((image.shape[0], image.shape[1], len(r["class_ids"])), np.bool)
+            masks = np.zeros((shape[0], shape[1], len(r["class_ids"])), np.bool)
 
             index_position = 0
             for _ in r["class_ids"]:

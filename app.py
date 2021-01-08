@@ -1,7 +1,8 @@
+import json
 import os
 
 import tensorflow as tf
-from flask import Flask, flash, request, redirect, send_file
+from flask import Flask, flash, request, redirect, send_file, send_from_directory
 from tensorflow.python.keras.backend import set_session
 from werkzeug.utils import secure_filename
 
@@ -19,7 +20,7 @@ cutter = CutObject(segmentation, UPLOAD_FOLDER)
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='node_modules')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
@@ -34,7 +35,7 @@ def uploaded_file(filename):
 
 
 @app.route('/', methods=['GET', 'POST'])
-def upload_file():
+def cutout():
     if request.method == 'POST':
         if 'file' not in request.files:
             flash('No file part')
@@ -48,22 +49,19 @@ def upload_file():
             image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(image_path)
 
+            crop_params = request.files['crop'].read()
+            crop_json = json.loads(crop_params)
+            crop = (int(crop_json['y']), int(crop_json['x']),
+                    int(crop_json['y'] + crop_json['height']), int(crop_json['x'] + crop_json['width']))
+
             global sess
             global graph
             with graph.as_default():
                 set_session(sess)
-                output_path = cutter.cut(image_path)
+                output_path = cutter.cut(image_path, crop)
 
             return send_file(output_path)
-    return '''
-    <!doctype html>
-    <title>Upload Image</title>
-    <h1>Upload image</h1>
-    <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
-      <input type=submit value=Upload>
-    </form>
-    '''
+    return send_from_directory("ui", "index.html")
 
 
 if __name__ == '__main__':
