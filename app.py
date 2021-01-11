@@ -27,7 +27,7 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/demo/cutout', methods=['GET', 'POST'])
 def cutout():
     if request.method == 'POST':
         if 'file' not in request.files:

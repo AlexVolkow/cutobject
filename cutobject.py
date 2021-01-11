@@ -57,7 +57,7 @@ class CutObject:
         for i in predict_result["class_ids"]:
             if COCO_CLASSES[i] == max_class_name:
                 mask = predict_result['masks'][:, :, index_position]
-                mask = expand_mask(mask, 16)
+                mask = expand_mask(mask, 10)
 
                 if final_mask is None:
                     final_mask = np.zeros(mask.shape, np.bool)

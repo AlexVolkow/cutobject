@@ -1,23 +1,25 @@
 <html lang="en">
 <head>
+    <meta content="text/html;charset=UTF-8" http-equiv="content-type"/>
+    <meta content='initial-scale=1,maximum-scale=1,user-scalable=no' name='viewport'/>
 
-    <meta charset="UTF-8">
-
-
-    <title>CutObject</title>
-
-
+    <title>Deflamel &#8211; Design Wizard</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
+    <link href='/content/css/all.css' id='vapp-responsive-css' media='all' rel='stylesheet' type='text/css'/>
+    <link crossorigin="anonymous" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+          integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropper/2.3.3/cropper.css">
 
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js'></script>
+    <script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js'></script>
+
     <style>
-        /* Limit image width to avoid overflow the container */
         img {
-            max-width: 100%; /* This rule is very important, please do not ignore this! */
+            max-width: 100%;
         }
 
         #canvas {
-            height: 600px;
-            width: 600px;
+            max-width: 100%;
             background-color: #ffffff;
             cursor: default;
             border: 1px solid black;
@@ -29,34 +31,63 @@
         };
     </script>
 
-
     <script>
         if (document.location.search.match(/type=embed/gi)) {
             window.parent.postMessage("resize", "*");
         }
     </script>
-
-
 </head>
 
-<body translate="no">
-<p>
-    <!-- Below are a series of inputs which allow file selection and interaction with the cropper api -->
-    <input type="file" id="fileInput" accept="image/*">
-    <input type="button" id="btnCrop" value="Crop">
-    <input type="button" id="btnRestore" value="Restore">
-</p>
-<div>
-    <canvas id="canvas">
-        Your browser does not support the HTML5 canvas element.
-    </canvas>
-</div>
+<body>
+<section>
+    <article class="SignUp">
+        <header class="Header">
+            <div class="Header__BackButton">
+                <a class="Header__BackButton-Arrow" href="https://deflamel.com/index.php/design-features/"></a>
+            </div>
+            <a class="Header__Logo" href="//deflamel.com/" target="_self"></a>
+            <a href="https://deflamel.com/index.php/design-features/">
+                <div class="Header__Menu">
+                    <span class="Header__Menu-Item"></span>
+                    <span class="Header__Menu-Item"></span>
+                    <span class="Header__Menu-Item"></span>
+                </div>
+            </a>
+        </header>
 
-<div id="result"></div>
+        <div class="Center" style="padding-top: 150px; justify-content: flex-start;">
+            <h1 class="Title">Smart Cut Out</h1>
+            <p class="SubTitle">Easily cut out the most important elements of your images<br><br></p>
 
-<br>
-<br>
-<hr>
+            <div class="row">
+                <div class="col-md-2"></div>
+                <div class="Input form-group col-md-4">
+                    <div class="ImageUploader">
+                        <canvas id="canvas">
+                            Your browser does not support the HTML5 canvas element.
+                        </canvas>
+                    </div>
+                    <div style="clear: both; margin: 20px 0 20px 0;">
+                        <input id="inp_img" name="image" type="file">
+                    </div>
+                    <input class="Footer__NextButton Footer__NextButton--visible Footer__NextButton--active"
+                           id="btn_crop"
+                           type='submit'
+                           value='Submit'/>
+                </div>
+
+                <div class="Input form-group col-md-4">
+                    <div class="ImageUploader">
+                        <img alt="resulting image"
+                             id="result_image"
+                             style="max-width: 100%;">
+                    </div>
+                </div>
+                <div class="col-md-2"></div>
+            </div>
+        </div>
+    </article>
+</section>
 
 <script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-157cd5b220a5c80d4ff8e0e70ac069bffd87a61252088146915e8726e5d9f147.js"></script>
 
@@ -66,62 +97,68 @@
     window.URL = window.URL || window.webkitURL;
 
     const canvas = $("#canvas"),
-        context = canvas.get(0).getContext("2d"),
-        $result = $('#result');
+        context = canvas.get(0).getContext("2d");
 
-    $('#fileInput').on('change', function () {
+    function createCropReader(file) {
+        let reader = new FileReader();
+        reader.onload = function (evt) {
+            let img = new Image();
+            img.onload = function () {
+                context.canvas.height = img.height;
+                context.canvas.width = img.width;
+                context.drawImage(img, 0, 0);
+
+                canvas.cropper('destroy');
+                const cropper = canvas.cropper({
+                    aspectRatio: NaN,
+                });
+
+                $('#btn_crop').click(function () {
+                    const request = new XMLHttpRequest();
+                    request.responseType = 'blob';
+
+                    request.onload = function (e) {
+                        if (this.status === 200) {
+                            const blob = this.response;
+
+                            const img = document.getElementById("result_image");
+                            img.onload = function (e) {
+                                window.URL.revokeObjectURL(img.src);
+                            };
+                            img.src = window.URL.createObjectURL(blob);
+                        }
+                    };
+
+                    const crop = canvas.cropper('getData');
+                    const cropJson = JSON.stringify(crop);
+                    const blob = new Blob([cropJson], {
+                        type: 'application/json'
+                    });
+
+                    const formData = new FormData();
+                    formData.append("file", file);
+                    formData.append("crop", blob);
+
+                    request.open("POST", "/demo/cutout", true);
+                    request.send(formData);
+                });
+                $('#btnRestore').click(function () {
+                    canvas.cropper('reset');
+                    $result.empty();
+                });
+            };
+            img.src = evt.target.result;
+        };
+        return reader;
+    }
+
+    $('#inp_img').on('change', function () {
         let files = this.files;
         if (files && files[0]) {
             if (files[0].type.match(/^image\//)) {
-                const reader = new FileReader();
-                reader.onload = function (evt) {
-                    const img = new Image();
-                    img.onload = function () {
-                        context.canvas.height = img.height;
-                        context.canvas.width = img.width;
-                        context.drawImage(img, 0, 0);
-                        const cropper = canvas.cropper({
-                            aspectRatio: NaN,
-                        });
-
-                        $('#btnCrop').click(function () {
-                            const request = new XMLHttpRequest();
-                            request.responseType = 'blob';
-
-                            request.onload = function (e) {
-                                if (this.status === 200) {
-                                    const blob = this.response;
-
-                                    const img = document.createElement('img');
-                                    img.onload = function (e) {
-                                        window.URL.revokeObjectURL(img.src); // Clean up after yourself.
-                                    };
-                                    img.src = window.URL.createObjectURL(blob);
-                                    $result.append(img);
-                                }
-                            };
-
-                            const crop = canvas.cropper('getData');
-                            const cropJson = JSON.stringify(crop);
-                            const blob = new Blob([cropJson], {
-                                type: 'application/json'
-                            });
-
-                            const formData = new FormData();
-                            formData.append("file", files[0]);
-                            formData.append("crop", blob);
-
-                            request.open("POST", "/", true);
-                            request.send(formData);
-                        });
-                        $('#btnRestore').click(function () {
-                            canvas.cropper('reset');
-                            $result.empty();
-                        });
-                    };
-                    img.src = evt.target.result;
-                };
-                reader.readAsDataURL(files[0]);
+                const inputFile = files[0];
+                let reader = createCropReader(inputFile);
+                reader.readAsDataURL(inputFile);
             } else {
                 alert("Invalid file type! Please select an image file.");
             }

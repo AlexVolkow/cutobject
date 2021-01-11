@@ -8,7 +8,7 @@ from skimage.measure import find_contours
 
 
 def generate_trimap(segment_mask):
-    iterations = 7
+    iterations = 6
     alpha = segment_mask
 
     k_dilated_size = 3
