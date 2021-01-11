@@ -7,8 +7,8 @@ import skimage.draw
 from skimage.measure import find_contours
 
 
-def generate_trimap(segment_mask, trimap_name):
-    iterations = 8
+def generate_trimap(segment_mask):
+    iterations = 7
     alpha = segment_mask
 
     k_dilated_size = 3
@@ -25,7 +25,7 @@ def generate_trimap(segment_mask, trimap_name):
     trimap[eroded >= 255] = 255
     trimap[dilated <= 0] = 0
 
-    cv2.imwrite(trimap_name, trimap)
+    return trimap
 
 
 def expand_mask(mask, pixels):

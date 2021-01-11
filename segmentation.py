@@ -1,7 +1,6 @@
 import logging
 from os.path import exists
 
-import cv2
 import numpy as np
 
 import mrcnn.model as modellib
@@ -26,8 +25,7 @@ class Segmentation:
 
         self.model.load_weights(model_path, by_name=True)
 
-    def predict(self, image_path, crop=None):
-        image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+    def predict(self, image, crop=None):
         shape = image.shape
 
         cropped = not (crop is None)

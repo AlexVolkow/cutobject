@@ -1,39 +1,31 @@
-import os
-
 import numpy as np
-from pymatting import cutout
+from PIL import Image
+from pymatting import estimate_alpha_cf, estimate_foreground_ml, stack_images
 
 from coco.coco import COCO_CLASSES
 from images import generate_trimap, expand_mask
 
 
 class CutObject:
-    def __init__(self, segmentation, temp_dir):
+    def __init__(self, segmentation):
         self.segmentation = segmentation
-        self.temp_dir = temp_dir
 
-    def cut(self, image_path, crop=None):
-        trimap_path = self.temp_dir + "/trimap/"
-        foreground_path = self.temp_dir + "/foreground/"
-
-        if not (os.path.exists(trimap_path)):
-            os.mkdir(trimap_path)
-
-        if not (os.path.exists(foreground_path)):
-            os.mkdir(foreground_path)
-
-        file = os.path.basename(image_path).split(".")[0]
-        trimap_image = trimap_path + "trimap_" + file + ".png"
-
-        foreground_name = foreground_path + str(file) + ".png"
-
-        mask = self.predict_mask(image_path, crop)
+    def cut(self, image, crop=None):
+        mask = self.predict_mask(image, crop)
         mask = np.uint8(mask * 255)
-        generate_trimap(mask, trimap_image)
 
-        cutout(image_path, trimap_image, foreground_name)
+        image = image / 255.0
 
-        return foreground_name
+        trimap = generate_trimap(mask)
+        trimap = trimap / 255.0
+
+        alpha = estimate_alpha_cf(image, trimap)
+        foreground = estimate_foreground_ml(image, alpha)
+
+        result = stack_images(foreground, alpha)
+        result = np.clip(result * 255, 0, 255).astype(np.uint8)
+
+        return Image.fromarray(result)
 
     def predict_mask(self, image_name, crop):
         predict_result = self.segmentation.predict(image_name, crop)
@@ -79,5 +71,6 @@ class CutObject:
 
         return final_mask
 
-    def area(self, mask):
+    @staticmethod
+    def area(mask):
         return mask.sum()
